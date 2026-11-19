@@ -1,0 +1,46 @@
+// AI-Powered Flashcard Generator — Prisma schema (SQLite local-first).
+//
+// A Deck is a named group of cards. Each Card belongs to exactly one Deck
+// (cascade delete). Cards carry a `type` field — one of:
+//   "cloze"  — front holds Anki cloze syntax {{c1::answer}}; back is a hint/extra.
+//   "qa"     — front = question, back = answer (Anki Basic note type).
+//   "image"  — front holds a {{c1::image: <prompt>}} placeholder describing the
+//              image to generate; back is a written description / alt text.
+//
+// `tags` is a comma-separated string (SQLite has no native array). `order`
+// preserves the generation order within a deck. `imagePrompt` is only set
+// for image-suggestion cards.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Deck {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cards       Card[]
+}
+
+model Card {
+  id          String   @id @default(cuid())
+  deckId      String
+  deck        Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  type        String   // "cloze" | "qa" | "image"
+  front       String
+  back        String
+  imagePrompt String?
+  tags        String
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([deckId])
+}
